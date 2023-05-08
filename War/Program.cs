@@ -9,248 +9,224 @@ namespace War
         {
             Country south = new Country("Южная");
             Country north = new Country("Северная");
-            south.CreateSquad();
-            north.CreateSquad();
-            bool IsGame = true;
+            bool isGame = true;
+            Random random= new Random();
 
-            while (IsGame)
+            while (isGame)
             {
                 south.ShowSquadInfo();
                 Console.WriteLine();
                 north.ShowSquadInfo();
-                south.Attack(north);
-                north.KillSoldier();
+                south.Attack(north, random);
+                north.RemoveDeathSoldier();
                 south.ShowSquadInfo();
                 Console.WriteLine();
                 north.ShowSquadInfo();
-                north.Attack(south);
-                south.KillSoldier();
+                north.Attack(south, random);
+                south.RemoveDeathSoldier();
 
-                if (north.IfLuse())
+                if (north.IsLuse())
                 {
                     Console.WriteLine($"{south.Name} победила в войне");
-                    IsGame = false;
+                    isGame = false;
                 }
-                else if (south.IfLuse())
+                else if (south.IsLuse())
                 {
                     Console.WriteLine($"{north.Name} победила в войне");
-                    IsGame = false;
+                    isGame = false;
                 }
 
                 Console.ReadKey();
                 Console.Clear();
             }
         }
+    }
 
-        class Country
+    class Country
+    {
+        private List<Soldier> _squad = new List<Soldier>();
+
+        public Country(string name)
         {
-            private List<Soldier> _squad { get; } = new List<Soldier>();
+            CreateSquad();
+            Name = name;
+        }
 
-            public Country(string name)
-            {
-                Name = name;
-            }
+        public string Name { get; private set; }
 
-            public string Name { get; private set; }
+        public void Attack(Country enemyCountry, Random random)
+        {
+            int minSquadIndex = 0;
+            Soldier soldier = _squad[random.Next(minSquadIndex, _squad.Count)];
+            Soldier enemy = enemyCountry.GetSoldier(random.Next(minSquadIndex, enemyCountry.GetSquadLenght()));
+            Console.WriteLine($"Солдат {soldier.Name} страны {Name} атакует противника - {enemy.Name} страны {enemyCountry.Name}.");
+            soldier.Attack(enemy);
+        }
 
-            public void CreateSquad()
-            {
-                int squadQuantity = 1;
+        public void ShowSquadInfo()
+        {
+            Console.WriteLine($"{Name}");
 
-                for (int i = 0; i < squadQuantity; i++)
-                {
-                    _squad.Add(new Infantryman(30,100));
-                    _squad.Add(new Shiper(50, 70));
-                    _squad.Add(new MachineGunner(40, 80));
-                }
-            }
-
-            public void Attack(Country enemyCountry)
-            {
-                Console.WriteLine($"Ваша страна - {Name}. Выберите солдата, которым будете атаковать!");
-                string friendlySoldierIndex = Console.ReadLine();
-
-                if (int.TryParse(friendlySoldierIndex, out int userSoldierIndex))
-                {
-                    if(userSoldierIndex <= _squad.Count && userSoldierIndex > 0)
-                    {
-                        Console.WriteLine("Выберите кого атаковать!");
-                        string enemySoldierIndex = Console.ReadLine();
-
-                        if (int.TryParse(enemySoldierIndex, out int enemyIndex))
-                        {
-                            if(enemyIndex <= enemyCountry.GetSquadLenght() && userSoldierIndex > 0)
-                            {
-                                _squad[userSoldierIndex - 1].Attack(enemyCountry.GetSoldier(enemyIndex - 1));
-                            }
-                            else
-                            {
-                                Console.WriteLine("Вы промазали по противнику! Вы пропускаете свой ход.");                              
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine("Неккоректный ввод...Вы пропускаете свой ход.");           
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Такого солдата нет в вашем взводе...Вы пропускаете свой ход.");
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Неккоректный ввод...Вы пропускаете свой ход.");
-                }
-            }
-
-            public void ShowSquadInfo()
-            {
-                Console.WriteLine($"{Name}");
-
-                if(_squad.Count > 0)
-                {
-                    for (int i = 0; i < _squad.Count; i++)
-                    {
-                        Console.Write($"{i + 1}) ");
-                        _squad[i].ShowStats();
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"В взводе страны -{Name}- не осталось солдат. Нажмите любую клавишу для продолжения...");
-                }
-            }
-
-            public void KillSoldier()
+            if (_squad.Count > 0)
             {
                 for (int i = 0; i < _squad.Count; i++)
                 {
-                    if (_squad[i].Health <= 0)
-                    {
-                        _squad.RemoveAt(i);
-                    }
+                    Console.Write($"{i + 1}) ");
+                    _squad[i].ShowStats();
                 }
             }
-
-            public bool IfLuse()
+            else
             {
-                return _squad.Count == 0;
-            }
-
-            private Soldier GetSoldier(int index)
-            {
-                return _squad[index];
-            }
-
-            private int GetSquadLenght()
-            {
-                return _squad.Count;
+                Console.WriteLine($"В взводе страны -{Name}- не осталось солдат. Нажмите любую клавишу для продолжения...");
             }
         }
 
-        class Soldier
+        public void RemoveDeathSoldier()
         {
-            public Soldier(string name, int damage, int health)
+            for (int i = 0; i < _squad.Count; i++)
             {
-                Name = name;
-                Damage = damage;
-                Health = health;
-            }
-
-            public string Name { get; protected set; }
-            public int Damage { get; protected set; }
-            public int Health { get; protected set; }
-
-            public virtual void Attack(Soldier soldier)
-            {
-                soldier.Health -= Damage;
-            }
-
-            public void ShowStats()
-            {
-                Console.WriteLine($"{Name}. Здоровье - {Health}. Урон - {Damage}.");
-
-            }
-        }
-        class Infantryman : Soldier
-        {
-            private int _medicaments = 10;
-
-            public Infantryman(int damage, int health, string name = "Пехотинец") : base(name, damage, health) { }
-
-            public override void Attack(Soldier soldier)
-            {
-                UseKnife();
-                base.Attack(soldier);
-            }
-
-            private void UseKnife()
-            {
-                int lowHealth = 50;
-
-                if(Health <= lowHealth)
+                if (_squad[i].Health <= 0)
                 {
-                    Console.WriteLine($"{Name} использует медикаменты для исцеления.");
-                    Health += _medicaments;
+                    _squad.RemoveAt(i);
+                    i--;
                 }
             }
         }
 
-        class Shiper : Soldier
+        public bool IsLuse()
         {
-            private int _criticalHitModificator = 3;
+            return _squad.Count == 0;
+        }
 
-            public Shiper(int damage, int health, string name = "Снайпер") : base(name, damage, health) { }
+        private void CreateSquad()
+        {
+            int squadQuantity = 1;
 
-            public override void Attack(Soldier soldier)
+            for (int i = 0; i < squadQuantity; i++)
             {
-                HitInHead(soldier);
-                base.Attack(soldier);
-            }
-
-            private void HitInHead(Soldier soldier)
-            {
-                int lowHealth = 50;
-                int badDamage = 20;
-
-                if(soldier.Health <= lowHealth)
-                {
-                    Console.WriteLine($"{Name} добивает врага выстрелом в голову.");
-                    Damage *= _criticalHitModificator;
-                }
-                else
-                {
-                    Console.WriteLine($"{Name} плохо видит врага и наносит уменьшенный урон");
-                    Damage = badDamage;
-                }
+                _squad.Add(new Infantryman(30, 100));
+                _squad.Add(new Shiper(50, 70));
+                _squad.Add(new MachineGunner(40, 80));
             }
         }
 
-        class MachineGunner : Soldier
+        private Soldier GetSoldier(int index)
         {
-            private int _rage = 3;
+            return _squad[index];
+        }
 
-            public MachineGunner(int damage, int health, string name = "Пулемётчик") : base(name, damage, health) { }
+        private int GetSquadLenght()
+        {
+            return _squad.Count;
+        }
+    }
 
-            public override void Attack(Soldier soldier)
+    class Soldier
+    {
+        public Soldier(string name, int damage, int health)
+        {
+            Name = name;
+            Damage = damage;
+            Health = health;
+        }
+
+        public string Name { get; protected set; }
+        public int Damage { get; protected set; }
+        public int Health { get; protected set; }
+
+        public virtual void Attack(Soldier soldier)
+        {
+            soldier.TakeDamage(Damage);
+        }
+
+        public void ShowStats()
+        {
+            Console.WriteLine($"{Name}. Здоровье - {Health}. Урон - {Damage}.");
+
+        }
+
+        private void TakeDamage(int damage)
+        {
+            Health-= damage;
+        }
+    }
+
+    class Infantryman : Soldier
+    {
+        private int _medicaments = 10;
+
+        public Infantryman(int damage, int health, string name = "Пехотинец") : base(name, damage, health) { }
+
+        public override void Attack(Soldier soldier)
+        {
+            UseMedicaments();
+            base.Attack(soldier);
+        }
+
+        private void UseMedicaments()
+        {
+            int lowHealth = 50;
+
+            if (Health <= lowHealth)
             {
-                ActivateRage();
-                base.Attack(soldier);
+                Console.WriteLine($"{Name} использует медикаменты для исцеления.");
+                Health += _medicaments;
             }
+        }
+    }
 
-            private void ActivateRage()
+    class Shiper : Soldier
+    {
+        private int _criticalHitModificator = 3;
+
+        public Shiper(int damage, int health, string name = "Снайпер") : base(name, damage, health) { }
+
+        public override void Attack(Soldier soldier)
+        {
+            HitInHead(soldier);
+            base.Attack(soldier);
+        }
+
+        private void HitInHead(Soldier soldier)
+        {
+            int lowHealth = 50;
+            int badDamage = 20;
+
+            if (soldier.Health <= lowHealth)
             {
-                int lowHealth = 50;
+                Console.WriteLine($"{Name} добивает врага выстрелом в голову.");
+                Damage *= _criticalHitModificator;
+            }
+            else
+            {
+                Console.WriteLine($"{Name} плохо видит врага и наносит уменьшенный урон");
+                Damage = badDamage;
+            }
+        }
+    }
 
-                if(Health<= lowHealth)
-                {
-                    Console.WriteLine($"{Name} впадает в ярость и увеличивает свой урон и здоровье");
-                    Damage += _rage;
-                    Health += _rage;
-                }
+    class MachineGunner : Soldier
+    {
+        private int _rage = 3;
+
+        public MachineGunner(int damage, int health, string name = "Пулемётчик") : base(name, damage, health) { }
+
+        public override void Attack(Soldier soldier)
+        {
+            ActivateRage();
+            base.Attack(soldier);
+        }
+
+        private void ActivateRage()
+        {
+            int lowHealth = 50;
+
+            if (Health <= lowHealth)
+            {
+                Console.WriteLine($"{Name} впадает в ярость и увеличивает свой урон и здоровье");
+                Damage += _rage;
+                Health += _rage;
             }
         }
     }
 }
-
